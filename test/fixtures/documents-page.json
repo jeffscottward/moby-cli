@@ -1,0 +1,26 @@
+{
+  "success": true,
+  "message": "ok",
+  "items": [
+    {
+      "id": "00000000-0000-0000-0000-000000000001",
+      "type": "stockPicksArticle",
+      "headline": "Synthetic Test Corp (TEST)",
+      "slug": "synthetic-test-pick",
+      "publishedAt": "2026-01-02T15:00:00.000Z",
+      "accessLevel": "subscriber",
+      "stockSymbol": "TEST",
+      "targetDate": "2027-01-02",
+      "targetPrice": 120,
+      "upsidePercentage": 20,
+      "company": {
+        "name": "Synthetic Test Corp",
+        "ticker": "TEST"
+      }
+    }
+  ],
+  "page": 1,
+  "perPage": 1,
+  "total": 1,
+  "contentAccessLevel": "subscriber"
+}

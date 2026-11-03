@@ -1,0 +1,27 @@
+{
+  "success": true,
+  "items": [
+    {
+      "id": "00000000-0000-0000-0000-000000000002",
+      "type": "newsArticle",
+      "headline": "Synthetic headline",
+      "slug": "synthetic-headline",
+      "publishedAt": "2026-01-03T12:00:00.000Z",
+      "tickers": [
+        "TEST"
+      ]
+    }
+  ],
+  "meta": {
+    "totalCount": 1,
+    "newsArticlesCount": 1
+  },
+  "companies": [
+    {
+      "id": "c1",
+      "name": "Synthetic Test Corp",
+      "ticker": "TEST",
+      "slug": "synthetic-test-corp"
+    }
+  ]
+}

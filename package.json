@@ -1,0 +1,22 @@
+{
+  "name": "moby-cli",
+  "version": "0.1.0",
+  "description": "Unofficial terminal client and typed API client for Moby (moby.co) research",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "moby-cli": "src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/client.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "scan": "bash scripts/secret-scan.sh"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+.env
+*.har
+*.storageState.json
+auth.json
+cache/
+capture/
+*.log
