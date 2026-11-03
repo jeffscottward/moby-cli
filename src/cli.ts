@@ -37,9 +37,14 @@ function parse(argv: string[]) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a.startsWith("--")) {
-      const k = a.slice(2);
+      const eq = a.indexOf("=");
+      const k = eq > 0 ? a.slice(2, eq) : a.slice(2);
       const next = argv[i + 1];
-      if (["json", "no-cache", "help"].includes(k) || next === undefined || next.startsWith("--")) flags[k] = true;
+      if (!["json", "no-cache", "help", "limit", "page", "query", "out"].includes(k)) {
+        throw new MobyError(`Unknown option: --${k}`, 2);
+      }
+      if (eq > 0) flags[k] = a.slice(eq + 1);
+      else if (["json", "no-cache", "help"].includes(k) || next === undefined || next.startsWith("--")) flags[k] = true;
       else flags[k] = argv[++i]!;
     } else if (a === "-h") flags.help = true;
     else pos.push(a);
@@ -153,7 +158,7 @@ export async function main(argv: string[], client?: MobyClient): Promise<number>
       const items = await api.exportDocuments(type, num(flags.limit, 50));
       const text = JSON.stringify(items, null, 2);
       if (typeof flags.out === "string") {
-        writeFileSync(flags.out, text + "\n");
+        writeFileSync(flags.out, text + "\n", { mode: 0o600 });
         console.error(dim(`Wrote ${items.length} ${type} items to ${flags.out}`));
       } else console.log(text);
       return 0;

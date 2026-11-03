@@ -83,6 +83,7 @@ describe("MobyClient", () => {
     const items = await client.exportDocuments("newsArticle", 5, 2);
     expect(items.length).toBe(5);
     expect(calls.length).toBe(3);
+    expect(calls.map((c) => JSON.parse(String(c.init.body)).perPage)).toEqual([2, 2, 2]);
   });
 
   test("raises a readable error on HTTP failure", async () => {
@@ -98,7 +99,7 @@ describe("cli", () => {
     const orig = console.log;
     console.log = (s: string) => logs.push(s);
     try {
-      expect(await main(["ideas", "--limit", "1", "--json"], client)).toBe(0);
+      expect(await main(["ideas", "--limit=1", "--json"], client)).toBe(0);
     } finally {
       console.log = orig;
     }

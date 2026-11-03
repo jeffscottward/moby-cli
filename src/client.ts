@@ -2,7 +2,7 @@
 // The API is undocumented. Endpoints and shapes were recovered from the
 // app.moby.co web client. They can change without notice.
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, chmodSync, statSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { createHash } from "node:crypto";
@@ -140,6 +140,7 @@ export class FileAuthStore {
   save(state: AuthState): void {
     if (process.env.MOBY_TOKEN) return;
     mkdirSync(configDir(), { recursive: true, mode: 0o700 });
+    chmodSync(configDir(), 0o700);
     writeFileSync(this.path, JSON.stringify(state, null, 2), { mode: 0o600 });
     chmodSync(this.path, 0o600);
   }
@@ -232,7 +233,7 @@ export class MobyClient {
   async exportDocuments(type: DocumentType, limit: number, perPage = 50): Promise<DocumentSummary[]> {
     const out: DocumentSummary[] = [];
     for (let page = 1; out.length < limit; page++) {
-      const r = await this.listDocuments({ type, page, perPage: Math.min(perPage, limit - out.length) });
+      const r = await this.listDocuments({ type, page, perPage: Math.min(perPage, limit) });
       out.push(...r.items);
       if (r.items.length === 0 || out.length >= r.total) break;
     }
@@ -259,7 +260,8 @@ export class MobyClient {
       },
     );
     if (!st.ok) throw new MobyError(`Firebase token refresh failed (HTTP ${st.status}).`, st.status);
-    const sj = (await st.json()) as { id_token: string; refresh_token?: string };
+    const sj = (await st.json()) as { id_token?: string; refresh_token?: string };
+    if (!sj.id_token) throw new MobyError("Firebase token refresh returned no id_token.", 401);
     const r = await this.fetchImpl(`${API_BASE}/auth/refresh`, {
       method: "PUT",
       headers: { ...this.headers(s.mobyToken), "x-firebase-token": sj.id_token },
@@ -295,19 +297,30 @@ export class MobyClient {
   }
 
   async request<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const key = `${method} ${path} ${body ? JSON.stringify(body) : ""}`;
+    let s = this.loadState();
+    // The token is part of the key so a different account never reads another account's cache.
+    const tokenTag = createHash("sha256").update(s.mobyToken).digest("hex").slice(0, 12);
+    const key = `${tokenTag} ${method} ${path} ${body ? JSON.stringify(body) : ""}`;
     if (this.cacheTtlMs > 0) {
       const p = this.cachePath(key);
       if (existsSync(p)) {
-        const hit = JSON.parse(readFileSync(p, "utf8")) as { at: number; data: T };
-        if (this.now() - hit.at < this.cacheTtlMs) return hit.data;
+        try {
+          const hit = JSON.parse(readFileSync(p, "utf8")) as { at: number; data: T };
+          if (this.now() - hit.at < this.cacheTtlMs) return hit.data;
+        } catch {
+          /* corrupt cache entry: treat as a miss */
+        }
       }
     }
-    let s = this.loadState();
     const exp = decodeJwtExp(s.mobyToken);
     if (exp && exp * 1000 - this.now() < 24 * 3600_000 && s.firebaseRefreshToken) {
-      await this.refresh();
-      s = this.loadState();
+      try {
+        await this.refresh();
+        s = this.loadState();
+      } catch (e) {
+        // Early refresh failed; keep the current token while it is still valid.
+        if (exp * 1000 <= this.now()) throw e;
+      }
     }
     let res = await this.send(method, path, body, s.mobyToken);
     if (res.status === 401 && s.firebaseRefreshToken) {
@@ -326,7 +339,10 @@ export class MobyClient {
     }
     if (this.cacheTtlMs > 0) {
       mkdirSync(this.cacheDir, { recursive: true, mode: 0o700 });
-      writeFileSync(this.cachePath(key), JSON.stringify({ at: this.now(), data: json }), { mode: 0o600 });
+      const target = this.cachePath(key);
+      const tmp = `${target}.${process.pid}.tmp`;
+      writeFileSync(tmp, JSON.stringify({ at: this.now(), data: json }), { mode: 0o600 });
+      renameSync(tmp, target);
     }
     return json as T;
   }
