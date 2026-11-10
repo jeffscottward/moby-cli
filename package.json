@@ -12,11 +12,11 @@
   },
   "scripts": {
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsrs --noEmit",
     "scan": "bash scripts/secret-scan.sh"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^7.0.2"
+    "tsrs": "^0.23.0-ts7.1.0-beta"
   }
 }
